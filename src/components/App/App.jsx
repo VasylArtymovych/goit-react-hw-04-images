@@ -1,11 +1,11 @@
-import React, {Component} from "react";
-import { Box } from "components/Box/Box";
-import { Searchbar } from "components/Searchbar/";
-import { ImageGallery } from "components/ImageGallery";
-import { Loader } from "components/Loader";
-import { Button } from "components/Button";
-import { Modal } from "components/Modal";
-import { Title } from "components/Title";
+import { useState, useEffect, useRef } from 'react';
+import { Box } from 'components/Box/Box';
+import { Searchbar } from 'components/Searchbar/';
+import { ImageGallery } from 'components/ImageGallery';
+import { Loader } from 'components/Loader';
+import { Button } from 'components/Button';
+import { Modal } from 'components/Modal';
+import { Title } from 'components/Title';
 import * as Scroll from 'react-scroll';
 
 const BASE_URL = 'https://pixabay.com/api/?';
@@ -16,105 +16,116 @@ const params = new URLSearchParams({
   per_page: 12,
 });
 
-class App extends Component {
-  state = {
-    name: '',
-    page: 1,
-    totalImages: 0,
-    images: [],
-    status: 'idle',
-    isModalShown: false,
-    largeImageUrl: '',
-    tag: '',
-  }
+const statuses = {
+  IDLE: 'idle',
+  PENDING: 'pending',
+  RESOLVE: 'resolve',
+  REJECTED: 'rejected',
+};
 
-  async componentDidUpdate(_, prevState){
-    const {name, page} = this.state;
+const App = () => {
+  const [name, setName] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalImages, setTotalImages] = useState(0);
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState(statuses.IDLE);
+  const [isModalShown, setIsModalShown] = useState(false);
+  const [largeImageUrl, setLargeImageUrl] = useState('');
+  const [tag, setTag] = useState('');
 
-    if(name !== prevState.name || page !== prevState.page){
-      try {
-        this.setState({status: 'pending'});
+  const cardRef = useRef(null);
 
-        const response = await fetch(BASE_URL + `q=${name}&page=${page}&` + params);
-        const data = await response.json();
-        const images = data.hits.map(({id, tags, webformatURL,      largeImageURL } ) => ({id, tags, webformatURL, largeImageURL}));
-        const totalImages = data.totalHits;
-        
-        if(images.length === 0){
-          this.setState({ status: 'rejected'});
-        }else {
-          this.setState((state) => ({images: [...state.images, ...images],  totalImages, status: 'resolve'}));
+  useEffect(() => {
+    if (!name) return;
+    setStatus(statuses.PENDING);
+
+    fetch(BASE_URL + `q=${name}&page=${page}&` + params)
+      .then(response => {
+        if (response.ok) {
+          return response.json();
         }
-      } catch (error) {
-        alert(error);
-      }
-    }
-  }
+        throw new Error('Error', response.status);
+      })
+      .then(data => {
+        const images = data.hits.map(
+          ({ id, tags, webformatURL, largeImageURL }) => ({
+            id,
+            tags,
+            webformatURL,
+            largeImageURL,
+          })
+        );
+        if (images.length !== 0) {
+          setImages(state => [...state, ...images]);
+          setTotalImages(data.totalHits);
+          setStatus(statuses.RESOLVE);
+        } else {
+          setStatus(statuses.REJECTED);
+        }
+      })
+      .catch(error => alert(error.message));
+  }, [name, page]);
 
-  handleSubmit = async (name) => {
-    this.setState({name, page: 1, images: []});
-  }
+  const handleSubmit = name => {
+    setName(name);
+    setPage(1);
+    setImages([]);
+  };
 
-  toggleModal = () => {
-    this.setState(s => ({isModalShown: !s.isModalShown,}));
-  }
+  const toggleModal = () => {
+    setIsModalShown(state => !state);
+  };
 
-  handleImgClick = (largeImageUrl, tag) => {
-    this.setState({largeImageUrl, tag});
-    this.toggleModal();
-  }
+  const handleImgClick = (largeImageUrl, tag) => {
+    setLargeImageUrl(largeImageUrl);
+    setTag(tag);
+    toggleModal();
+  };
 
-  loadMore = ()=>{
-    this.setState((state) => ({
-      page: state.page + 1
-    }));
-    if(this.state.status === 'resolve'){
-      this.scrollPage();
-    };
-  }
-
-  scrollPage = () => {
-    const element = document.querySelector('#card');
+  const scrollPage = () => {
+    const element = cardRef.current;
     const height = element.offsetHeight;
+
     Scroll.animateScroll.scrollMore(height * 2, {
       smooth: 'linear',
     });
-  }
+  };
 
-  render() {
-    const {
-      images, 
-      status, 
-      name, 
-      totalImages, 
-      page, 
-      isModalShown, 
-      largeImageUrl, 
-      tag } = this.state;
-    const countPages = Math.ceil(totalImages/12);
-  
-    return (
-      <Box> 
-        <Searchbar onSubmit={this.handleSubmit}/>
-        {status === 'idle' && <Title>Enter a name to search: </Title>}
-        {status === 'pending' && <Loader />}
-        {status === 'resolve' && <ImageGallery 
-        images={images} 
-        onImgClick={this.handleImgClick}
-        />}
-        {status === 'rejected' && <Title>Didn't find images with name: {name}</Title>}
-        {status === 'resolve' && page < countPages && <Button 
-        onClick={this.loadMore}
-        />  }
-        {isModalShown && largeImageUrl && <Modal 
-        close={this.toggleModal}
-        >
-          <img src={largeImageUrl} alt={tag}/>
-        </Modal>}
-      </Box>
-    )
-  }
+  const loadMore = () => {
+    setPage(state => state + 1);
+
+    if (status === 'resolve') {
+      scrollPage();
+    }
+  };
+
+  const countPages = Math.ceil(totalImages / 12);
+
+  return (
+    <Box>
+      <Searchbar onSubmit={handleSubmit} />
+      {status === 'idle' && <Title>Enter a name to search: </Title>}
+      {status === 'pending' && <Loader />}
+      {status === 'resolve' && (
+        <ImageGallery
+          images={images}
+          onImgClick={handleImgClick}
+          cardRef={cardRef}
+        />
+      )}
+      {status === 'rejected' && (
+        <Title>Didn't find images with name: {name}</Title>
+      )}
+      {status === 'resolve' && page < countPages && (
+        <Button onClick={loadMore} />
+      )}
+      {isModalShown && largeImageUrl && (
+        <Modal close={toggleModal}>
+          <img src={largeImageUrl} alt={tag} />
+        </Modal>
+      )}
+    </Box>
+  );
 };
 
 export default App;
-

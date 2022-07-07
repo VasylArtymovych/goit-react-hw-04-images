@@ -1,52 +1,49 @@
-import { createPortal } from "react-dom";
-import React, {Component} from 'react';
-import {AiOutlineCloseCircle} from 'react-icons/ai';
+import { createPortal } from 'react-dom';
+import { useEffect } from 'react';
+import { AiOutlineCloseCircle } from 'react-icons/ai';
 import PropTypes from 'prop-types';
-import { IconButton } from "components/IconButton";
-import {Backdrop, StyledModal} from './Modal.styled';
-
+import { IconButton } from 'components/IconButton';
+import { Backdrop, StyledModal } from './Modal.styled';
 
 const modalRoot = document.querySelector('#modal-root');
 
+export const Modal = ({ close, children }) => {
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
 
-export class Modal extends Component {
-    static propTypes ={
-        close: PropTypes.func.isRequired,
-    }
+    return () => {
+      return window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
-    componentDidMount(){
-        window.addEventListener('keydown', this.handleKeyDown);
+  const handleKeyDown = e => {
+    if (e.code !== 'Escape') {
+      return;
     }
-    componentWillUnmount(){
-        window.removeEventListener('keydown', this.handleKeyDown);
-    }
+    close();
+  };
 
-    handleKeyDown = e => {
-        if(e.code === 'Escape'){
-            this.props.close();
-        }
+  const handleBackdropClick = e => {
+    if (e.currentTarget === e.target) {
+      close();
     }
+  };
 
-    handleBackdropClick = e => {
-        if(e.currentTarget === e.target){
-            this.props.close();
-        }
-    }
+  return createPortal(
+    <Backdrop onClick={handleBackdropClick}>
+      <StyledModal>
+        <IconButton onClick={close} position="absolute">
+          <AiOutlineCloseCircle color="white" size={28} />
+        </IconButton>
 
-    render(){
-        return createPortal(
-            <Backdrop onClick={this.handleBackdropClick}>
-                <StyledModal>
-                    <IconButton onClick={this.props.close} position='absolute'>
-                        <AiOutlineCloseCircle color='white'size={28}/>
-                    </IconButton>
-                    {this.props.children}
-                </StyledModal>
-            </Backdrop>,
-            modalRoot,
-        )
-    }
+        {children}
+      </StyledModal>
+    </Backdrop>,
+    modalRoot
+  );
 };
 
-
-
+Modal.propTypes = {
+  close: PropTypes.func.isRequired,
+  children: PropTypes.any,
+};
