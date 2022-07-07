@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as Scroll from 'react-scroll';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Box } from 'components/Box/Box';
 import { Searchbar } from 'components/Searchbar/';
 import { ImageGallery } from 'components/ImageGallery';
@@ -6,7 +9,7 @@ import { Loader } from 'components/Loader';
 import { Button } from 'components/Button';
 import { Modal } from 'components/Modal';
 import { Title } from 'components/Title';
-import * as Scroll from 'react-scroll';
+import { CardContext } from 'components/Context';
 
 const BASE_URL = 'https://pixabay.com/api/?';
 const params = new URLSearchParams({
@@ -56,6 +59,9 @@ const App = () => {
           })
         );
         if (images.length !== 0) {
+          if (page === 1) {
+            toast.success(`We found ${data.totalHits} matches!`);
+          }
           setImages(state => [...state, ...images]);
           setTotalImages(data.totalHits);
           setStatus(statuses.RESOLVE);
@@ -66,10 +72,14 @@ const App = () => {
       .catch(error => alert(error.message));
   }, [name, page]);
 
-  const handleSubmit = name => {
-    setName(name);
-    setPage(1);
+  const handleSubmit = newnName => {
+    if (name === newnName) {
+      toast.info(`You already type the  name: ${newnName}`);
+      return;
+    }
     setImages([]);
+    setName(newnName);
+    setPage(1);
   };
 
   const toggleModal = () => {
@@ -102,29 +112,26 @@ const App = () => {
   const countPages = Math.ceil(totalImages / 12);
 
   return (
-    <Box>
-      <Searchbar onSubmit={handleSubmit} />
-      {status === 'idle' && <Title>Enter a name to search: </Title>}
-      {status === 'pending' && <Loader />}
-      {status === 'resolve' && (
-        <ImageGallery
-          images={images}
-          onImgClick={handleImgClick}
-          cardRef={cardRef}
-        />
-      )}
-      {status === 'rejected' && (
-        <Title>Didn't find images with name: {name}</Title>
-      )}
-      {status === 'resolve' && page < countPages && (
-        <Button onClick={loadMore} />
-      )}
-      {isModalShown && largeImageUrl && (
-        <Modal close={toggleModal}>
-          <img src={largeImageUrl} alt={tag} />
-        </Modal>
-      )}
-    </Box>
+    <CardContext.Provider value={{ onImgClick: handleImgClick, cardRef }}>
+      <ToastContainer autoClose={1500} theme={'dark'} icon={true} />
+      <Box>
+        <Searchbar onSubmit={handleSubmit} />
+        {status === 'idle' && <Title>Enter a name to search: </Title>}
+        {status === 'pending' && <Loader />}
+        {status === 'resolve' && <ImageGallery images={images} />}
+        {status === 'rejected' && (
+          <Title>Didn't find images with name: {name}</Title>
+        )}
+        {status === 'resolve' && page < countPages && (
+          <Button onClick={loadMore} />
+        )}
+        {isModalShown && largeImageUrl && (
+          <Modal close={toggleModal}>
+            <img src={largeImageUrl} alt={tag} />
+          </Modal>
+        )}
+      </Box>
+    </CardContext.Provider>
   );
 };
 

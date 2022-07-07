@@ -9,19 +9,16 @@ const modalRoot = document.querySelector('#modal-root');
 
 export const Modal = ({ close, children }) => {
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    const handleKeyDown = e => {
+      if (e.code !== 'Escape') return;
+      close();
+    };
 
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       return window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
-
-  const handleKeyDown = e => {
-    if (e.code !== 'Escape') {
-      return;
-    }
-    close();
-  };
+  }, [close]);
 
   const handleBackdropClick = e => {
     if (e.currentTarget === e.target) {
@@ -45,5 +42,5 @@ export const Modal = ({ close, children }) => {
 
 Modal.propTypes = {
   close: PropTypes.func.isRequired,
-  children: PropTypes.any,
+  children: PropTypes.node,
 };
