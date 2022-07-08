@@ -13,8 +13,8 @@ export const Modal = ({ close, children }) => {
       if (e.code !== 'Escape') return;
       close();
     };
-
     window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       return window.removeEventListener('keydown', handleKeyDown);
     };

@@ -12,6 +12,7 @@ import { Modal } from 'components/Modal';
 import { Title } from 'components/Title';
 import { CardContext } from 'components/Context';
 import { IconButton } from '../IconButton';
+import { useModal } from 'components/MyHooks';
 
 const BASE_URL = 'https://pixabay.com/api/?';
 const params = new URLSearchParams({
@@ -34,9 +35,9 @@ const App = () => {
   const [totalImages, setTotalImages] = useState(0);
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState(statuses.IDLE);
-  const [isModalShown, setIsModalShown] = useState(false);
   const [largeImageUrl, setLargeImageUrl] = useState('');
   const [tag, setTag] = useState('');
+  const { isModalOpen, toggleModal } = useModal();
 
   const cardRef = useRef(null);
 
@@ -84,10 +85,6 @@ const App = () => {
     setImages([]);
   };
 
-  const toggleModal = () => {
-    setIsModalShown(state => !state);
-  };
-
   const handleImgClick = (largeImageUrl, tag) => {
     setLargeImageUrl(largeImageUrl);
     setTag(tag);
@@ -131,7 +128,7 @@ const App = () => {
         {status === 'resolve' && page < countPages && (
           <Button onClick={loadMore} />
         )}
-        {isModalShown && largeImageUrl && (
+        {isModalOpen && largeImageUrl && (
           <Modal close={toggleModal}>
             <img src={largeImageUrl} alt={tag} />
           </Modal>
