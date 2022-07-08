@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as Scroll from 'react-scroll';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { FaArrowCircleUp } from 'react-icons/fa';
 import { Box } from 'components/Box/Box';
 import { Searchbar } from 'components/Searchbar/';
 import { ImageGallery } from 'components/ImageGallery';
@@ -10,6 +11,7 @@ import { Button } from 'components/Button';
 import { Modal } from 'components/Modal';
 import { Title } from 'components/Title';
 import { CardContext } from 'components/Context';
+import { IconButton } from '../IconButton';
 
 const BASE_URL = 'https://pixabay.com/api/?';
 const params = new URLSearchParams({
@@ -61,9 +63,9 @@ const App = () => {
         if (images.length !== 0) {
           if (page === 1) {
             toast.success(`We found ${data.totalHits} matches!`);
+            setTotalImages(data.totalHits);
           }
           setImages(state => [...state, ...images]);
-          setTotalImages(data.totalHits);
           setStatus(statuses.RESOLVE);
         } else {
           setStatus(statuses.REJECTED);
@@ -77,9 +79,9 @@ const App = () => {
       toast.info(`You already type the  name: ${newnName}`);
       return;
     }
-    setImages([]);
     setName(newnName);
     setPage(1);
+    setImages([]);
   };
 
   const toggleModal = () => {
@@ -109,7 +111,11 @@ const App = () => {
     }
   };
 
-  const countPages = Math.ceil(totalImages / 12);
+  const scrollToTopBtn = () => {
+    Scroll.animateScroll.scrollToTop();
+  };
+
+  const countPages = useMemo(() => Math.ceil(totalImages / 12), [totalImages]);
 
   return (
     <CardContext.Provider value={{ onImgClick: handleImgClick, cardRef }}>
@@ -129,6 +135,17 @@ const App = () => {
           <Modal close={toggleModal}>
             <img src={largeImageUrl} alt={tag} />
           </Modal>
+        )}
+        {page > 1 && (
+          <IconButton
+            borderRadius={50}
+            border="2px solid black"
+            position="fixed"
+            mode="bottom"
+            onClick={scrollToTopBtn}
+          >
+            <FaArrowCircleUp size={32} color="#833c0dcd" />
+          </IconButton>
         )}
       </Box>
     </CardContext.Provider>
